@@ -9,15 +9,9 @@
 @REM RunInNativeMode=False: Run PowerShell script in 32 bit process on 64 bit OS
 @Set RunInNativeMode=True
 @Set HideArgumentsInLogs=True
-@REM PowerShell logging preferences
-@Set VerbosePreference=Continue
-@Set DebugPreference=SilentlyContinue
-@Set WarningPreference=Continue
-@Set ErrorActionPreference=Continue
-@Set ProgressPreference=Continue
 
 @Echo Running setup...
-"%LocallToolsFolder%\Script.Install.Tools.exe" RunPowerShellScript /powerShellScriptFile="%~dp0\Install.ps1" /arguments={'%1';'%2';'%3';'%4';'%5';'%6';'%7';'%8';'%9'} /runInNativeMode="%RunInNativeMode%" /hideArguments="%HideArgumentsInLogs%" /verbosePreference="%VerbosePreference%" /debugPreference="%DebugPreference%" /warningPreference="%WarningPreference%" /errorActionPreference="%ErrorActionPreference%" /progressPreference="%ProgressPreference%" 
+"%LocallToolsFolder%\Script.Install.Tools.exe" RunPowerShellScript /powerShellScriptFile="%~dp0\Install.ps1" /arguments={'%1';'%2';'%3';'%4';'%5';'%6';'%7';'%8';'%9'} /runInNativeMode="%RunInNativeMode%" /hideArguments="%HideArgumentsInLogs%"
 @Set ErrorCode=%ERRORLEVEL%
 @Echo Cleaning up...
 IF NOT "%LocallToolsFolder%" == "" Rmdir "%LocallToolsFolder%" /S /Q

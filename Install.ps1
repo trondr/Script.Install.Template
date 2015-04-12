@@ -2,7 +2,8 @@ function Install
 {
     $exitCode = 0
 
-    #Install code here
+    Write-Host "Installling..."
+    $exitCode = 1
 
     return $exitCode
 }
@@ -12,10 +13,22 @@ function UnInstall
 {
     $exitCode = 0
 
-    #UnInstall code here
+    Write-Host "UnInstalling..."
+    $exitCode = 1
 
     return $exitCode
 }
+
+###############################################################################
+#
+#   Logging preference
+#
+###############################################################################
+$global:VerbosePreference = "SilentlyContinue"
+$global:DebugPreference = "SilentlyContinue"
+$global:WarningPreference = "Continue"
+$global:ErrorActionPreference = "Continue"
+$global:ProgressPreference = "Continue"
 
 ###############################################################################
 #
@@ -34,15 +47,24 @@ $scriptInstallLibraryScript = [System.IO.Path]::Combine($scriptFolder , "Tools",
 Write-Verbose "ScriptInstallLibraryScript=$scriptInstallLibraryScript"
 Write-Verbose "Loading install library script '$scriptInstallLibraryScript'..."
 . $scriptInstallLibraryScript
-# Get install action
-#$installAction = GetInstallAction()
+$action = GetAction($args)
+Write-Verbose "Action=$action"
 
 Write-Host "Executing Install.ps1..."
 
 Write-Host "Executing install action '$installAction'..."
-
 Write-Host "TODO: Implement execution of install action and set exit code"
+switch($action)
+{
+    "Install"
+    {
+        $exitCode = ExecuteAction([scriptblock]$function:Install)
+    }
 
-Write-Host "Finished executing Install.ps1"
-
-EXIT $ExitCode
+    "UnInstall"
+    {
+        $exitCode = ExecuteAction([scriptblock]$function:UnInstall)
+    }
+}
+Write-Host "Finished executing Install.ps1. Exit code: $exitCode"
+EXIT $exitCode
