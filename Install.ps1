@@ -2,6 +2,8 @@ function Install
 {
     $exitCode = 0
 
+    $exitCode = StartProcess "%InstallCommand%" "%InstallCommandArguments%"
+
     Write-Host "Installling..."
     $exitCode = 1
 
@@ -12,6 +14,8 @@ function Install
 function UnInstall
 {
     $exitCode = 0
+
+    $exitCode = StartProcess "%UnInstallCommand%" "%UnInstallCommandArguments%"
 
     Write-Host "UnInstalling..."
     $exitCode = 1
@@ -32,7 +36,7 @@ $global:ProgressPreference = "Continue"
 
 ###############################################################################
 #
-#   Main Script - Do not change
+#   Start: Main Script - Do not change
 #
 ###############################################################################
 $script = $MyInvocation.MyCommand.Definition
@@ -68,3 +72,8 @@ switch($action)
 }
 Write-Host "Finished executing Install.ps1. Exit code: $exitCode"
 EXIT $exitCode
+###############################################################################
+#
+#   End: Main Script - Do not change
+#
+###############################################################################

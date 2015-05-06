@@ -29,3 +29,26 @@ function ExecuteAction([scriptblock]$action)
 
     return $exitCode
 }
+
+function StartProcess([string]$command, [string]$commandArguments, [string]$workingDirectory, [bool] $waitForExit)
+{
+    If (Test-Path $command)
+    {
+        $startInfo = New-Object [System.Diagnostics.ProcessStartInfo]
+        $startInfo.WorkingDirectory = $workingDirectory
+        $startInfo.Arguments = $commandArguments
+        $startInfo.FileName = $command        
+        $process = [System.Diagnostics.Process]::Start($startInfo)
+        if($waitForExit -eq $true)
+        {
+            $process.WaitForExit()
+        }
+        $exitCode = $process.ExitCode
+        return $exitCode
+    }
+    Else
+    {
+        Write-Host "ERROR: File not found: $command" -BackgroundColor Red
+        return 1
+    }
+}
