@@ -49,6 +49,6 @@ function StartProcess([string]$command, [string]$commandArguments, [string]$work
     Else
     {
         Write-Host "ERROR: File not found: $command" -BackgroundColor Red
-        return 1
+        return 2
     }
 }
