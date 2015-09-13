@@ -1,7 +1,7 @@
 @Echo Off
 
 @Echo Extracting script install Toolsities...
-@Set ToolsFolder="%~dp0Tools"
+@Set ToolsFolder=%~dp0Tools
 @Set LocallToolsFolder=%temp%\Script.Install.Tools
 "%ToolsFolder%\7zip\7za.exe" x "%ToolsFolder%\Script.Install.Tools.zip" -o"%LocallToolsFolder%" -y
 
