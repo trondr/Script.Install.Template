@@ -52,3 +52,67 @@ function StartProcess([string]$command, [string]$commandArguments, [string]$work
         return 2
     }
 }
+
+
+function IsLocal([string]$path)
+{
+    $uri = New-Object System.Uri($path)
+    if($uri.IsUnc)
+    {
+        Write-Verbose "Path is remote: $path"
+        return $false
+    }
+    $drive = Split-Path -Qualifier $path
+    $logicalDisk = Gwmi Win32_LogicalDisk -filter "DriveType = 4 AND DeviceID = '$drive'"
+    if($logicalDisk -eq $null)
+    {
+        Write-Verbose "Path is remote: $path"
+        return $falsec
+    }
+    Write-Verbose "Path is local: $path"
+    return $true
+}
+
+function LoadLibrary([string]$libraryFilePath)
+{
+    if( [System.IO.File]::Exists($libraryFilePath) -eq $false )
+    {
+        Write-Error "Failed to load library. Library file not found: '$libraryFilePath'."
+		return $null
+    }
+    $libraryTargetFilePath = $libraryFilePath
+    $isLocal = IsLocal($libraryFilePath)
+    if($isLocal -eq $false)
+    {
+       #Library is remote, prepare to copy it localy before loading it.
+       $libraryFileName = [System.IO.Path]::GetFileName($libraryFilePath)
+       $libraryFolderName = [System.IO.Path]::GetFileNameWithoutExtension($libraryFilePath)
+       $libraryTargetFolder = CombinePaths($Env:TEMP, $libraryFolderName)
+       if(! (Test-Path $libraryTargetFolder) )
+       {
+            [System.IO.Directory]::CreateDirectory($libraryTargetFolder)
+       }
+       $libraryTargetFilePath = CombinePaths($libraryTargetFolder, $libraryFileName)
+       [System.IO.File]::Copy($libraryFilePath, $libraryTargetFilePath, $true)
+    }
+    $library = [System.Reflection.Assembly]::LoadFrom($libraryTargetFilePath)
+    if($library -eq $null)
+    {
+        Write-Error "Failed to load library: '$libraryTargetFilePath'."
+    }
+    return $library
+}
+
+function CombinePaths
+{
+    if($args -eq $null)
+    {
+        Write-Error "CombinePaths was called with no arguments"
+        return $null
+    }
+    $combinedPath = [string]::Join([System.IO.Path]::DirectorySeparatorChar, [string[]]$args[0]) 
+    Write-Verbose "CombinedPath=$combinedPath"
+    return $combinedPath
+}
+#$combinedPaths = CombinePaths("arg1","arg2","arg3")
+#Write-Host $combinedPaths

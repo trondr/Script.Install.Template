@@ -33,7 +33,6 @@ $global:DebugPreference = "SilentlyContinue"
 $global:WarningPreference = "Continue"
 $global:ErrorActionPreference = "Continue"
 $global:ProgressPreference = "Continue"
-
 ###############################################################################
 #
 #   Start: Main Script - Do not change
@@ -51,6 +50,11 @@ $scriptInstallLibraryScript = [System.IO.Path]::Combine($scriptFolder , "Tools",
 Write-Verbose "ScriptInstallLibraryScript=$scriptInstallLibraryScript"
 Write-Verbose "Loading install library script '$scriptInstallLibraryScript'..."
 . $scriptInstallLibraryScript
+Write-Verbose "Loading script install tools C# library..."
+$assembly = LoadLibrary(CombinePaths($scriptFolder , "Tools", "Script.Install.Tools.Library", "Common.Logging.dll"))
+$assembly = LoadLibrary(CombinePaths($scriptFolder , "Tools", "Script.Install.Tools.Library", "Script.Install.Tools.Library.dll"))
+
+
 $action = GetAction($args)
 Write-Verbose "Action=$action"
 
