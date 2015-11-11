@@ -6,8 +6,6 @@ function Install
     Write-Host "Installling..."
     $exitCode = StartProcess "%InstallCommand%" "%InstallCommandArguments%"
         
-    $exitCode = 1
-
     return $exitCode
 }
 
@@ -17,9 +15,7 @@ function UnInstall
     $exitCode = 0
     
     Write-Host "UnInstalling..."
-    $exitCode = StartProcess "%UnInstallCommand%" "%UnInstallCommandArguments%"
-        
-    $exitCode = 1
+    $exitCode = StartProcess "%UnInstallCommand%" "%UnInstallCommandArguments%"    
 
     return $exitCode
 }
@@ -83,8 +79,15 @@ If ($? -eq $false)
 ###############################################################################
 Write-Verbose "Loading script install tools C# library..."
 $assembly = LoadLibrary(CombinePaths($scriptFolder , "Tools", "Script.Install.Tools.Library", "Common.Logging.dll"))
+if($assembly -eq $null)
+{
+    EXIT 1
+}
 $assembly = LoadLibrary(CombinePaths($scriptFolder , "Tools", "Script.Install.Tools.Library", "Script.Install.Tools.Library.dll"))
-
+if($assembly -eq $null)
+{
+    EXIT 1
+}
 $action = GetAction($args)
 Write-Verbose "Action=$action"
 Write-Host "Executing Install.ps1..."

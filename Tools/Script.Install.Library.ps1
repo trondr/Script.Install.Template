@@ -48,8 +48,8 @@ function StartProcess([string]$command, [string]$commandArguments, [string]$work
     }
     Else
     {
-        Write-Host "ERROR: File not found: $command" -BackgroundColor Red
-        return 2
+        Write-Host -ForegroundColor Red "ERROR: File not found: $command" -BackgroundColor Red
+        return 1
     }
 }
 
@@ -98,7 +98,7 @@ function LoadLibrary([string]$libraryFilePath)
     $library = [System.Reflection.Assembly]::LoadFrom($libraryTargetFilePath)
     if($library -eq $null)
     {
-        Write-Error "Failed to load library: '$libraryTargetFilePath'."
+        Write-Host -ForegroundColor Red "Failed to load library: '$libraryTargetFilePath'."
     }
     return $library
 }
