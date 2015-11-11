@@ -67,7 +67,7 @@ function IsLocal([string]$path)
     if($logicalDisk -eq $null)
     {
         Write-Verbose "Path is remote: $path"
-        return $falsec
+        return $false
     }
     Write-Verbose "Path is local: $path"
     return $true
