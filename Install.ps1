@@ -1,10 +1,11 @@
+Set-PSDebug -Strict
 function Install
 {
     $exitCode = 0
 
-    $exitCode = StartProcess "%InstallCommand%" "%InstallCommandArguments%"
-
     Write-Host "Installling..."
+    $exitCode = StartProcess "%InstallCommand%" "%InstallCommandArguments%"
+        
     $exitCode = 1
 
     return $exitCode
@@ -14,10 +15,10 @@ function Install
 function UnInstall
 {
     $exitCode = 0
-
-    $exitCode = StartProcess "%UnInstallCommand%" "%UnInstallCommandArguments%"
-
+    
     Write-Host "UnInstalling..."
+    $exitCode = StartProcess "%UnInstallCommand%" "%UnInstallCommandArguments%"
+        
     $exitCode = 1
 
     return $exitCode
@@ -40,28 +41,54 @@ $global:ProgressPreference = "Continue"
 ###############################################################################
 $script = $MyInvocation.MyCommand.Definition
 Write-Verbose "Script=$script"
-$scriptFolder = split-path -parent $script
+$scriptFolder = Split-Path -parent $script
 Write-Verbose "ScriptFolder=$scriptFolder"
-$libraryScript = [System.IO.Path]::Combine($scriptFolder ,"Library.ps1")
-Write-Verbose "LibraryScript=$libraryScript"
-Write-Verbose "Loading install library script '$libraryScript'..."
-. $libraryScript
+
+###############################################################################
+#   Loading script library
+###############################################################################
+$scriptLibrary = [System.IO.Path]::Combine($scriptFolder ,"Library.ps1")
+if((Test-Path $scriptLibrary) -eq $false)
+{
+    Write-Host -ForegroundColor Red "Script library '$scriptLibrary' not found."
+    EXIT 1
+}
+Write-Verbose "ScriptLibrary=$scriptLibrary"
+Write-Verbose "Loading script library '$scriptLibrary'..."
+. $scriptLibrary
+If ($? -eq $false) 
+{ 
+    Write-Host -ForegroundColor Red "Failed to load library '$scriptLibrary'. Error: $($error[0])"; break 
+    EXIT 1
+};
+###############################################################################
+#   Loading script install library
+###############################################################################
 $scriptInstallLibraryScript = [System.IO.Path]::Combine($scriptFolder , "Tools","Script.Install.Library.ps1")
+if((Test-Path $scriptInstallLibraryScript) -eq $false)
+{
+    Write-Host -ForegroundColor Red "Script library '$scriptInstallLibraryScript' not found."
+    EXIT 1
+}
 Write-Verbose "ScriptInstallLibraryScript=$scriptInstallLibraryScript"
 Write-Verbose "Loading install library script '$scriptInstallLibraryScript'..."
 . $scriptInstallLibraryScript
+If ($? -eq $false) 
+{ 
+    Write-Host -ForegroundColor Red "Failed to load library '$scriptLibrary'. Error: $($error[0])"; break 
+    EXIT 1
+};
+###############################################################################
+#   Loading script install tools C# library
+###############################################################################
 Write-Verbose "Loading script install tools C# library..."
 $assembly = LoadLibrary(CombinePaths($scriptFolder , "Tools", "Script.Install.Tools.Library", "Common.Logging.dll"))
 $assembly = LoadLibrary(CombinePaths($scriptFolder , "Tools", "Script.Install.Tools.Library", "Script.Install.Tools.Library.dll"))
 
-
 $action = GetAction($args)
 Write-Verbose "Action=$action"
-
 Write-Host "Executing Install.ps1..."
-
 Write-Host "Executing install action '$installAction'..."
-Write-Host "TODO: Implement execution of install action and set exit code"
 switch($action)
 {
     "Install"
