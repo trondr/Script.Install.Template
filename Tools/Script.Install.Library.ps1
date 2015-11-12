@@ -32,25 +32,28 @@ function ExecuteAction([scriptblock]$action)
 
 function StartProcess([string]$command, [string]$commandArguments, [string]$workingDirectory, [bool] $waitForExit)
 {
-    If (Test-Path $command)
+    If ((Test-Path $command) -eq $false)
     {
-        $startInfo = New-Object [System.Diagnostics.ProcessStartInfo]
-        $startInfo.WorkingDirectory = $workingDirectory
-        $startInfo.Arguments = $commandArguments
-        $startInfo.FileName = $command        
-        $process = [System.Diagnostics.Process]::Start($startInfo)
-        if($waitForExit -eq $true)
-        {
-            $process.WaitForExit()
-        }
-        $exitCode = $process.ExitCode
-        return $exitCode
+       Write-Host -ForegroundColor Red "ERROR: File not found: $command" -BackgroundColor Red
+       return 1
     }
-    Else
+    Write-Verbose "Command: $command"
+    Write-Verbose "Command Arguments: $commandArguments"
+    Write-Verbose "Working Directory: $workingDirectory"
+    Write-Verbose "Wait For Exit: $waitForExit"
+    Write-Host "Executing: $command $commandArguments"
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.WorkingDirectory = $workingDirectory
+    $startInfo.Arguments = $commandArguments
+    $startInfo.FileName = $command        
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    if($waitForExit -eq $true)
     {
-        Write-Host -ForegroundColor Red "ERROR: File not found: $command" -BackgroundColor Red
-        return 1
-    }
+        $process.WaitForExit()
+    }    
+    $exitCode = $process.ExitCode
+    Write-Host "Exit: $command $commandArguments : $exitCode"
+    return $exitCode   
 }
 
 

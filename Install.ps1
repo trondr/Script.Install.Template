@@ -1,11 +1,40 @@
 Set-PSDebug -Strict
+
+function Init
+{    
+    $global:logsDirectory =  [System.IO.Path]::GetFullPath([System.IO.Path]::Combine([System.Environment]::GetEnvironmentVariable("Public"),"Logs"))
+    if((Test-Path $logsDirectory) -eq $false)
+    {
+        [System.IO.Directory]::CreateDirectory($logsDirectory)
+    }
+    $global:systemDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::System)
+    $global:msiexecExe = [System.IO.Path]::Combine($systemDirectory, "msiexec.exe")
+    $global:vendorInstallFolder = [System.IO.Path]::Combine($scriptFolder,"VendorInstall")
+    $global:vendorInstallIni = [System.IO.Path]::Combine($vendorInstallFolder,"VendorInstall.ini")
+    if((Test-Path $vendorInstallIni) -eq $false)
+    {
+        Write-Host -ForegroundColor Red "VendorInstall.ini file not found: $vendorInstallIni"
+        return 1
+    }
+    $global:msiFileName = ""
+    $global:msiFileName = [Script.Install.Tools.Library.IniFileOperations]::Read($vendorInstallIni,"VendorInstall","MsiFileName")
+    Write-Verbose "MsiFileName=$msiFileName"
+    $global:msiFilePath = [System.IO.Path]::Combine($vendorInstallFolder, $msiFileName)
+    Write-Verbose "MsiFilePath=$msiFilePath"    
+    if((Test-Path $msiFilePath) -eq $false)
+    {
+        Write-Host -ForegroundColor Red "Msi file not found: $msiFilePath"
+        return 1
+    }
+    Write-Verbose "SystemDirectory=$systemDirectory"
+    return 0
+}
+
 function Install
 {
     $exitCode = 0
-
     Write-Host "Installling..."
-    $exitCode = StartProcess "%InstallCommand%" "%InstallCommandArguments%"
-        
+    $exitCode = StartProcess "$msiexecExe" "/i`"$msiFilePath`" /qn REBOOT=REALLYSUPPRESS /lv! `"$logsDirectory\Install_$msiFileName.log`"" "$vendorInstallFolder" $true       
     return $exitCode
 }
 
@@ -13,10 +42,8 @@ function Install
 function UnInstall
 {
     $exitCode = 0
-    
     Write-Host "UnInstalling..."
-    $exitCode = StartProcess "%UnInstallCommand%" "%UnInstallCommandArguments%"    
-
+    $exitCode = StartProcess "$msiexecExe" "/x`"$msiFilePath`" REBOOT=REALLYSUPPRESS /lv! `"$logsDirectory\UnInstall_$msiFileName.log`"" "$vendorInstallFolder" $true
     return $exitCode
 }
 
@@ -35,9 +62,9 @@ $global:ProgressPreference = "Continue"
 #   Start: Main Script - Do not change
 #
 ###############################################################################
-$script = $MyInvocation.MyCommand.Definition
+$global:script = $MyInvocation.MyCommand.Definition
 Write-Verbose "Script=$script"
-$scriptFolder = Split-Path -parent $script
+$global:scriptFolder = Split-Path -parent $script
 Write-Verbose "ScriptFolder=$scriptFolder"
 
 ###############################################################################
@@ -91,17 +118,33 @@ if($assembly -eq $null)
 $action = GetAction($args)
 Write-Verbose "Action=$action"
 Write-Host "Executing Install.ps1..."
-Write-Host "Executing install action '$installAction'..."
+Write-Host "Executing $action action..."
 switch($action)
 {
     "Install"
     {
-        $exitCode = ExecuteAction([scriptblock]$function:Install)
+        $exitCode = ExecuteAction([scriptblock]$function:Init)
+        if($exitCode -eq 0)
+        {
+            $exitCode = ExecuteAction([scriptblock]$function:Install)
+        }
+        else
+        {
+            Write-Host -ForegroundColor Red "Initialization failed with error code: $exitCode"
+        }
     }
 
     "UnInstall"
     {
-        $exitCode = ExecuteAction([scriptblock]$function:UnInstall)
+        $exitCode = ExecuteAction([scriptblock]$function:Init)
+        if($exitCode -eq 0)
+        {
+            $exitCode = ExecuteAction([scriptblock]$function:UnInstall)
+        }
+        else
+        {
+            Write-Host -ForegroundColor Red "Initialization failed with error code: $exitCode"
+        }        
     }
 }
 Write-Host "Finished executing Install.ps1. Exit code: $exitCode"
