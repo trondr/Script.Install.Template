@@ -17,7 +17,7 @@ function Init
         return 1
     }
     $global:msiFileName = ""
-    $global:msiFileName = [Script.Install.Tools.Library.IniFileOperations]::Read($vendorInstallIni,"VendorInstall","MsiFileName")
+    $global:msiFileName = [Script.Install.Tools.Library.IniFileOperations]::Read($vendorInstallIni,"VendorInstall","MsiFile")
     Write-Verbose "MsiFileName=$msiFileName"
     $global:msiFilePath = [System.IO.Path]::Combine($vendorInstallFolder, $msiFileName)
     Write-Verbose "MsiFilePath=$msiFilePath"    
@@ -43,7 +43,7 @@ function UnInstall
 {
     $exitCode = 0
     Write-Host "UnInstalling..."
-    $exitCode = StartProcess "$msiexecExe" "/x`"$msiFilePath`" REBOOT=REALLYSUPPRESS /lv! `"$logsDirectory\UnInstall_$msiFileName.log`"" "$vendorInstallFolder" $true
+    $exitCode = StartProcess "$msiexecExe" "/x`"$msiFilePath`" /qn REBOOT=REALLYSUPPRESS /lv! `"$logsDirectory\UnInstall_$msiFileName.log`"" "$vendorInstallFolder" $true
     return $exitCode
 }
 
