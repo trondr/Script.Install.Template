@@ -17,6 +17,7 @@ UserInputRequired=False
 AdminRightsRequired=True
 UseInstallAccount=True
 Run=Minimized
+Icon=App.ico
 Comment=
 
 [UNINSTALL]
