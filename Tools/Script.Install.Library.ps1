@@ -25,7 +25,11 @@ function GetAction([System.Array]$arguments)
 
 function ExecuteAction([scriptblock]$action)
 {
+    if(IsTerminalServer -and IsAdministrator) { ChangeUserInstall }
+    
     $exitCode = & $action
+
+    if(IsTerminalServer -and IsAdministrator) { ChangeUserExecute }
 
     return $exitCode
 }
@@ -55,7 +59,6 @@ function StartProcess([string]$command, [string]$commandArguments, [string]$work
     Write-Host "Exit: $command $commandArguments : $exitCode"
     return $exitCode   
 }
-
 
 function IsLocal([string]$path)
 {
@@ -119,3 +122,53 @@ function CombinePaths
 }
 #$combinedPaths = CombinePaths("arg1","arg2","arg3")
 #Write-Host $combinedPaths
+
+function IsTerminalServer
+{
+	try
+	{
+		$terminalServerSettings = Get-WmiObject Win32_TerminalServiceSetting -Namespace "root\CIMv2\TerminalServices" | Select-Object -first 1
+		if($terminalServerSettings.TerminalServerMode -eq 1)
+		{
+			return $true
+		}
+        else
+        {
+            return $false
+        }
+	}
+	catch
+	{
+		return $false
+	}
+}
+#TEST: IsTerminalServer
+
+function IsAdministrator
+{	
+	$isAdministrator = $false
+	$windowsIdentity=[System.Security.Principal.WindowsIdentity]::GetCurrent()
+  	$windowsPrincipal=new-object System.Security.Principal.WindowsPrincipal($windowsIdentity)
+  	$administratorRole=[System.Security.Principal.WindowsBuiltInRole]::Administrator
+  	$isAdministrator=$windowsPrincipal.IsInRole($administratorRole)    
+	return $isAdministrator
+}
+#TEST: IsAdministrator
+
+function ChangeUserExecute
+{
+	$changeExe = CombinePaths($Env:windir, "System32", "change.exe")
+	if([System.IO.File]::Exists($changeExe))
+	{
+		[System.Diagnostics.Process]::Start($changeExe,"Change User /Execute")
+	}	
+}
+
+function ChangeUserInstall
+{
+	$changeExe = CombinePaths($Env:windir, "System32", "change.exe")
+	if([System.IO.File]::Exists($changeExe))
+	{
+		[System.Diagnostics.Process]::Start($changeExe,"Change User /Install")
+	}
+}
