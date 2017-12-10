@@ -12,6 +12,38 @@ function ExecuteAction([scriptblock]$action)
     return $exitCode
 }
 
+function ValidateFileExists
+{
+    Param(
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $FileName=$(throw "FileName is mandatory, please provide a value."),
+        [String]
+        $Message
+    )
+    if([System.IO.File]::Exists($FileName) -eq $false)
+    {
+        $(throw "$Message Error: File '$FileName' does not exist.")
+    }    
+}
+#TEST : ValidateFileExists "c:\temp\notes.txt"
+
+function ValidateDirectoryExists
+{
+    Param(
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $DirectoryName=$(throw "DirectoryName is mandatory, please provide a value."),
+        [String]
+        $Message
+    )
+    if([System.IO.Directory]::Exists($DirectoryName) -eq $false)
+    {
+        $(throw "$Message. Error: Directory '$DirectoryName' does not exist.")
+    }    
+}
+#TEST : ValidateDirectoryExists "c:\temp2"
+
 function StartProcess([string]$command, [string]$commandArguments, [string]$workingDirectory, [bool] $waitForExit)
 {
     If ((Test-Path $command) -eq $false)
@@ -135,18 +167,76 @@ function IsAdministrator
 
 function ChangeUserExecute
 {
-	$changeExe = CombinePaths($Env:windir, "System32", "change.exe")
-	if([System.IO.File]::Exists($changeExe))
-	{
-		[System.Diagnostics.Process]::Start($changeExe,"Change User /Execute")
-	}	
+	$exitCode = StartProcess "$(GetChangeExe)" "User /Execute" $null $true    
 }
 
 function ChangeUserInstall
 {
-	$changeExe = CombinePaths($Env:windir, "System32", "change.exe")
-	if([System.IO.File]::Exists($changeExe))
-	{
-		[System.Diagnostics.Process]::Start($changeExe,"Change User /Install")
-	}
+	$exitCode = StartProcess "$(GetChangeExe)" "User /Install" $null $true
+}
+
+function GetSystemFolder
+{
+    $systemFolder = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::System)
+    Write-Verbose "SystemFolder=$systemFolder"
+    ValidateDirectoryExists -DirectoryName $systemFolder
+    return $systemFolder
+}
+#TEST GetSystemFolder
+
+function GetMsiExecExe
+{
+    $msiexecExe = [System.IO.Path]::Combine($(GetSystemFolder), "msiexec.exe")
+    Write-Verbose "MsiExecExe=$msiexecExe"
+    ValidateFileExists -FileName $msiexecExe
+    return $msiexecExe
+}
+#TEST GetMsiExecExe
+
+function GetChangeExe
+{
+    $changeExe = [System.IO.Path]::Combine($(GetSystemFolder), "change.exe")
+    Write-Verbose "ChangeExe=$changeExe"
+    ValidateFileExists -FileName $changeExe
+    return $changeExe
+}
+#TEST GetChangeExe
+
+function GetVendorInstallFolder
+{
+    $vendorInstallFolder = [System.IO.Path]::Combine($scriptFolder,"VendorInstall")
+    Write-Verbose "VendorInstallFolder=$vendorInstallFolder"
+    ValidateDirectoryExists -DirectoryName $vendorInstallFolder
+    return $vendorInstallFolder
+}
+#TEST GetVendorInstallFolder
+
+
+function GetVendorInstallIni
+{
+    $vendorInstallIni = [System.IO.Path]::Combine($(GetVendorInstallFolder),"VendorInstall.ini")
+    Write-Verbose "VendorInstallIni=$vendorInstallIni"
+    ValidateFileExists -FileName $vendorInstallIni
+    return $vendorInstallIni
+}
+#TEST GetVendorInstallIni
+
+function GetVendorInstallIniMsiFileName
+{
+    $vendorInstallIniMsiFileName = [Script.Install.Tools.Library.IniFileOperations]::Read($(GetVendorInstallIni),"VendorInstall","MsiFile")
+    Write-Verbose "VendorInstallIniMsiFileName=$vendorInstallIniMsiFileName"
+    if([System.String]::IsNullOrWhiteSpace($vendorInstallIniMsiFileName) -eq $true)
+    {
+        throw "Msi file not specified in VendorInstall.ini: '$(GetVendorInstallIni)[VendorInstall]MsiFile="
+    }
+    return $vendorInstallIniMsiFileName
+}
+#TEST GetVendorInstallIniMsiFileName
+
+function GetVendorInstallIniMsiFilePath
+{
+    $vendorInstallIniMsiFilePath = [System.IO.Path]::Combine($(GetVendorInstallFolder), $(GetVendorInstallIniMsiFileName))
+    Write-Verbose "VendorInstallIniMsiFilePath=$vendorInstallIniMsiFilePath"   
+    ValidateFileExists -FileName $vendorInstallIniMsiFilePath -Message "Msi file specified in ini file '$(GetVendorInstallIni)[VendorInstall]MsiFile=$(GetVendorInstallIniMsiFileName)' does not exist in folder '$(GetVendorInstallFolder)'."
+    return $vendorInstallIniMsiFilePath
 }

@@ -15,26 +15,6 @@ function Init
     {
         [System.IO.Directory]::CreateDirectory($logsDirectory)
     }
-    $global:systemDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::System)
-    $global:msiexecExe = [System.IO.Path]::Combine($systemDirectory, "msiexec.exe")
-    $global:vendorInstallFolder = [System.IO.Path]::Combine($scriptFolder,"VendorInstall")
-    $global:vendorInstallIni = [System.IO.Path]::Combine($vendorInstallFolder,"VendorInstall.ini")
-    if((Test-Path $vendorInstallIni) -eq $false)
-    {
-        Write-Host -ForegroundColor Red "VendorInstall.ini file not found: $vendorInstallIni"
-        return 1
-    }
-    $global:msiFileName = ""
-    $global:msiFileName = [Script.Install.Tools.Library.IniFileOperations]::Read($vendorInstallIni,"VendorInstall","MsiFile")
-    Write-Verbose "MsiFileName=$msiFileName"
-    $global:msiFilePath = [System.IO.Path]::Combine($vendorInstallFolder, $msiFileName)
-    Write-Verbose "MsiFilePath=$msiFilePath"    
-    if((Test-Path $msiFilePath) -eq $false)
-    {
-        Write-Host -ForegroundColor Red "Msi file not found: $msiFilePath"
-        return 1
-    }
-    Write-Verbose "SystemDirectory=$systemDirectory"
     return 0
 }
 
@@ -42,7 +22,7 @@ function Install
 {
     $exitCode = 0
     Write-Host "Installling..."
-    $exitCode = StartProcess "$msiexecExe" "/i`"$msiFilePath`" /qn REBOOT=REALLYSUPPRESS /lv! `"$logsDirectory\Install_$msiFileName.log`"" "$vendorInstallFolder" $true    
+    #$exitCode = StartProcess "$(GetMsiExecExe)" "/i`"$(GetVendorInstallIniMsiFilePath)`" /qn REBOOT=REALLYSUPPRESS /lv! `"$logsDirectory\Install_$(GetVendorInstallIniMsiFileName).log`"" $null $true    
     return $exitCode
 }
 
@@ -51,7 +31,7 @@ function UnInstall
 {
     $exitCode = 0
     Write-Host "UnInstalling..."
-    $exitCode = StartProcess "$msiexecExe" "/x`"$msiFilePath`" /qn REBOOT=REALLYSUPPRESS /lv! `"$logsDirectory\UnInstall_$msiFileName.log`"" "$vendorInstallFolder" $true
+    #$exitCode = StartProcess "$(GetMsiExecExe)" "/x`"$(GetVendorInstallIniMsiFilePath)`" /qn REBOOT=REALLYSUPPRESS /lv! `"$logsDirectory\UnInstall_$(GetVendorInstallIniMsiFileName).log`"" $null $true
     return $exitCode
 }
 
