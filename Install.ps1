@@ -1,3 +1,11 @@
+Param(
+    [Parameter(Position=0)]
+    [ValidateNotNullOrEmpty()]
+    [ValidateSet("Install","UnInstall")]
+    [string]
+    $Action=$(throw "Missing command line parameter. First parameter must be an action in the set: Install,UnInstall")
+)
+
 Set-PSDebug -Strict
 
 function Init
@@ -34,7 +42,7 @@ function Install
 {
     $exitCode = 0
     Write-Host "Installling..."
-    $exitCode = StartProcess "$msiexecExe" "/i`"$msiFilePath`" /qn REBOOT=REALLYSUPPRESS /lv! `"$logsDirectory\Install_$msiFileName.log`"" "$vendorInstallFolder" $true       
+    $exitCode = StartProcess "$msiexecExe" "/i`"$msiFilePath`" /qn REBOOT=REALLYSUPPRESS /lv! `"$logsDirectory\Install_$msiFileName.log`"" "$vendorInstallFolder" $true    
     return $exitCode
 }
 
@@ -47,6 +55,15 @@ function UnInstall
     return $exitCode
 }
 
+switch($Action)
+{
+    "Install"   { $actionScriptBlock = [scriptblock]$function:Install }
+    "UnInstall" { $actionScriptBlock = [scriptblock]$function:UnInstall }
+    default { 
+        Write-Host "Unknown action: $Action" -ForegroundColor Red
+        EXIT 1
+    }
+}
 ###############################################################################
 #
 #   Logging preference
@@ -115,37 +132,16 @@ if($assembly -eq $null)
 {
     EXIT 1
 }
-$action = GetAction($args)
 Write-Verbose "Action=$action"
-Write-Host "Executing Install.ps1..."
 Write-Host "Executing $action action..."
-switch($action)
+$exitCode = ExecuteAction([scriptblock]$function:Init)
+if($exitCode -eq 0)
 {
-    "Install"
-    {
-        $exitCode = ExecuteAction([scriptblock]$function:Init)
-        if($exitCode -eq 0)
-        {
-            $exitCode = ExecuteAction([scriptblock]$function:Install)
-        }
-        else
-        {
-            Write-Host -ForegroundColor Red "Initialization failed with error code: $exitCode"
-        }
-    }
-
-    "UnInstall"
-    {
-        $exitCode = ExecuteAction([scriptblock]$function:Init)
-        if($exitCode -eq 0)
-        {
-            $exitCode = ExecuteAction([scriptblock]$function:UnInstall)
-        }
-        else
-        {
-            Write-Host -ForegroundColor Red "Initialization failed with error code: $exitCode"
-        }        
-    }
+    $exitCode = ExecuteAction([scriptblock]$actionScriptBlock)
+}
+else
+{
+    Write-Host -ForegroundColor Red "Init() function failed with error code: $exitCode"
 }
 Write-Host "Finished executing Install.ps1. Exit code: $exitCode"
 EXIT $exitCode
