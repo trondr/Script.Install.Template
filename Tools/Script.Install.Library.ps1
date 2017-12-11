@@ -1,4 +1,3 @@
-
 # Helper functions used by Install.ps1 main script
 
 function ExecuteAction([scriptblock]$action)
@@ -89,36 +88,6 @@ function IsLocal([string]$path)
     return $true
 }
 
-function LoadLibrary([string]$libraryFilePath)
-{
-    if( [System.IO.File]::Exists($libraryFilePath) -eq $false )
-    {
-        Write-Error "Failed to load library. Library file not found: '$libraryFilePath'."
-		return $null
-    }
-    $libraryTargetFilePath = $libraryFilePath
-    $isLocal = IsLocal($libraryFilePath)
-    if($isLocal -eq $false)
-    {
-       #Library is remote, prepare to copy it localy before loading it.
-       $libraryFileName = [System.IO.Path]::GetFileName($libraryFilePath)
-       $libraryFolderName = [System.IO.Path]::GetFileNameWithoutExtension($libraryFilePath)
-       $libraryTargetFolder = CombinePaths($Env:TEMP, $libraryFolderName)
-       if(! (Test-Path $libraryTargetFolder) )
-       {
-            [System.IO.Directory]::CreateDirectory($libraryTargetFolder)
-       }
-       $libraryTargetFilePath = CombinePaths($libraryTargetFolder, $libraryFileName)
-       [System.IO.File]::Copy($libraryFilePath, $libraryTargetFilePath, $true)
-    }
-    $library = [System.Reflection.Assembly]::LoadFrom($libraryTargetFilePath)
-    if($library -eq $null)
-    {
-        Write-Host -ForegroundColor Red "Failed to load library: '$libraryTargetFilePath'."
-    }
-    return $library
-}
-
 function CombinePaths
 {
     if($args -eq $null)
@@ -132,6 +101,93 @@ function CombinePaths
 }
 #$combinedPaths = CombinePaths("arg1","arg2","arg3")
 #Write-Host $combinedPaths
+
+function GetLocalTempLibRootFolder
+{
+    $localTempLibRootFolder = [System.IO.Path]::Combine($Env:TEMP,"ScrILib")
+    if([System.IO.Directory]::Exists($localTempLibRootFolder) -eq $false)
+    {
+        $directory = [System.IO.Directory]::CreateDirectory($localTempLibRootFolder)
+    }
+    Write-Verbose "LocalTempLibRootFolder=$localTempLibRootFolder"
+    return $localTempLibRootFolder
+}
+#TEST: GetLocalTempLibRootFolder
+
+function GetLocalTempLibFolder
+{
+    $localTempLibFolder = [System.IO.Path]::Combine($(GetLocalTempLibRootFolder),"$(Get-Random)")
+    if([System.IO.Directory]::Exists($localTempLibFolder) -eq $false)
+    {
+        $directory = [System.IO.Directory]::CreateDirectory($localTempLibFolder)
+    }
+    Write-Verbose "LocalTempLibFolder=$localTempLibFolder"
+    return $localTempLibFolder
+}
+#TEST: GetLocalTempLibFolder
+
+function CleanupPreviousLoadedLibraries
+{
+    $subDirectories = [System.IO.Directory]::GetDirectories($(GetLocalTempLibRootFolder))
+    $filteredSubDirectories = $subDirectories | Where-Object { $_ -match "\d+"}
+    ForEach($subDirectory in $filteredSubDirectories)
+    {
+        try
+        {
+            Write-Verbose "Cleanup previous loaded libraries in '$subDirectory' ..."
+            [System.IO.Directory]::Delete($subDirectory,$true)
+        }
+        catch
+        {
+            #Ignore errors
+        }
+    }
+}
+#TEST: CleanupPreviousLoadedLibraries
+
+function GetLocalLibraryTargetFilePath
+{
+    Param(
+        [ValidateNotNullOrEmpty()]        
+        [String]
+        $LibraryFilePath=$(throw "Library path not specified.")
+    )
+    $libraryFileName = [System.IO.Path]::GetFileName($libraryFilePath)
+    $libraryFolderName = [System.IO.Path]::GetFileNameWithoutExtension($libraryFilePath)
+    $libraryTargetFolder = CombinePaths($(GetLocalTempLibFolder), $libraryFolderName)
+    if([System.IO.Directory]::Exists($libraryTargetFolder) -eq $false)
+    {
+        $directory = [System.IO.Directory]::CreateDirectory($libraryTargetFolder)
+    }
+    $libraryTargetFilePath = CombinePaths($libraryTargetFolder, $libraryFileName)
+    Write-Verbose "LibraryTargetFilePath=$libraryTargetFilePath"
+    return $libraryTargetFilePath
+}
+#TEST: GetLocalLibraryTargetFilePath
+
+function LoadLibrary([string]$libraryFilePath)
+{
+    if( [System.IO.File]::Exists($libraryFilePath) -eq $false )
+    {
+        Write-Host "Failed to load library. Library file not found: '$libraryFilePath'." -ForegroundColor Red
+		return $null
+    }
+    $libraryTargetFilePath = $libraryFilePath
+    $isLocal = IsLocal($libraryFilePath)
+    if($isLocal -eq $false)
+    {
+       CleanupPreviousLoadedLibraries
+       $libraryTargetFilePath = GetLocalLibraryTargetFilePath -LibraryFilePath $libraryFilePath
+       [System.IO.File]::Copy($libraryFilePath, $libraryTargetFilePath, $true)
+    }
+    $library = [System.Reflection.Assembly]::LoadFrom($libraryTargetFilePath)
+    if($library -eq $null)
+    {
+        Write-Host "Failed to load library: '$libraryTargetFilePath'." -ForegroundColor Red
+    }
+    return $library
+}
+#LoadLibrary "\\testserver\Temp\Common.Logging.dll"
 
 function IsTerminalServer
 {
